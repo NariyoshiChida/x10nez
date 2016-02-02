@@ -16,6 +16,7 @@ ImportDeclarations        = { 'import I;' #Stub }
 
 TypeDeclarations          = { 'class X{}' #Stub }
 ClassDeclaration          = { 'class X{}' #Stub }
+ClassBody                 = { '{}' #Stub }
 StructDeclaration         = { 'struct X{}' #Stub }
 InterfaceDeclaration      = { 'interface X{}' #Stub }
 TypeDefDeclaration        = { 'type ID = int;' #Stub }
@@ -27,7 +28,11 @@ PropertyMethodDeclaration = { 'x() {}' #Stub }
 FieldDeclaration          = { 'x:Int;' #Stub }
 LocalVariableDeclaration  = { 'var x = 1' #Stub }
 Formals                   = { '(ID : Int)' #Stub }
+Formal                    = { 'ID : Int' #Stub }
 LoopIndex                 = { 'li' #Stub }
+
+Guard                     = { '{}' #Stub }
+HasResultType             = { '<: Int' #Stub }
 
 example PackageDeclaration '''
 package ID.ID;
@@ -43,7 +48,7 @@ example TypeDeclaration '''
 struct ID {}
 '''
 example TypeDeclaration '''
-Interface ID extends ID, ID {}
+interface ID extends ID, ID {}
 '''
 example MethodDeclaration '''
 public def ID(ID : Int) : int {}
@@ -67,13 +72,13 @@ example LocalVariableDeclaration '''
 var ID : Int;
 '''
 
-
+//example Type (ID : Int) => Int
 /* Types */
-Type                      = { FunctionType / ConstrainedType / Void #Type }
+Type                      = { $(FunctionType) / $(ConstrainedType) / $(Void) #Type }
 
-FunctionType              = { TypeParams? _* '(' _* FormalList? _* ')' _* Guard? _* '=>' _* Type #FunctionType }
+FunctionType              = { $(TypeParameters)? _* '(' _* $(FormalList)? _* ')' _* $(Guard)? _* '=>' _* $(Type) #FunctionType }
 
-Guard                     = DepParams
+Guard                     = $(DepParams)
 
 ConstrainedType           = NamedType / AnnotatedType
 
@@ -81,23 +86,52 @@ Void                      = { 'void' #Void }
 
 Annotations               = { '@A' #Annotations }
 
-TypeArguments             = { '[' TypeArgumentList ' ]' #TypeArguments }
+AnnotatedType             = { $(Type) $(Annotations) #AnnotatedType }
 
-TypeArgumentList          = Type ( ',' Type )*
+TypeArguments             = { '[' $(TypeArgumentList) ' ]' #TypeArguments }
 
-TypeParameters            = { '[' TypeParamList ']' #TypeParameters }
-TypeParametersI           = { '[' TypeParamIList ']' #TypeParametersI }
+TypeArgumentList          = $(Type) ( ',' $(Type) )*
 
-TypeParamIList            =　TypeParam ( ',' TypeParam )* ','?
+TypeParameters            = { '[' $(TypeParamList) ']' #TypeParameters }
+TypeParametersI           = { '[' $(TypeParamIList) ']' #TypeParametersI }
 
-TypeParamList             = TypeParam _* ( ',' _* TypeParam )*
+TypeParamIList            =　$(TypeParam) ( ',' $(TypeParam) )* ','?
 
-TypeParam                 = { Id #TypeParam }
-Id                        = Identifier
+TypeParamList             = $(TypeParam) _* ( ',' _* $(TypeParam) )*
 
-TypeImportOnDemandDecln   = 'import' _* PackageOrTypeName _* '.' _* '*'
+TypeParam                 = { $(Id) #TypeParam }
+Id                        = $(Identifier)
 
-TypeName                  = { Id ( '.' Id )* #TypeName }
+TypeImportOnDemandDecln   = 'import' _* $(PackageOrTypeName) _* '.' _* '*'
+
+TypeName                  = { $(Id) ( '.' $(Id) )* #TypeName }
+
+NamedType                 = NamedTypeNoConstraints 
+			  / DepNamedType
+
+NamedTypeNoConstraints    = SimpleNamedType
+			  / ParamizedNamedType
+
+SimpleNamedType           = TypeName
+			  / Primary '.' Id
+			  / ParamizedNamedType '.' Id
+			  / DepNamedType '.' Id
+
+ParamizedNamedType        = ''
+			  
+DepNamedType              = ''
+
+Primary                   = 'here'
+			  / '[' ArgumentList? ']'
+			  / Literal
+			  / 'self'
+			  / 'this'
+			  / ClassName '.' 'this'
+			  / '(' Exp ')'
+			  / ObCreationExp
+			  / FieldAccess
+			  / MethodInvo
+
 
 
 
@@ -110,6 +144,7 @@ example Type (ID : Int) => Int
 
 /* Statements */
 Block                     = { '{}' #Stub }
+// _BlockStatements       = #Stub
 Statement                 = { 'stmt' #Stub }
 
 example Block {}
@@ -120,18 +155,17 @@ example Block '''
 }
 '''
 example Statement ;
-example Statement var x = 1;
 example Statement {}
-example Statement exp;
+example Statement exp++;
 example Statement break;
 example Statement break ID;
 example Statement continue;
 example Statement if(exp) break;
 example Statement while(exp) {}
 example Statement do {} while(exp);
-example Statement for(exp; exp; exp) {}
+example Statement for(var x = 1; exp; exp++) {}
 example Statement return exp;
-example Statement ID : return;
+example Statement ID : while(exp) {}
 example Statement assert exp;
 example Statement assert exp : exp;
 example Statement throw exp;
@@ -155,7 +189,7 @@ try {
 '''
 example Statement at(exp) {}
 example Statement async {}
-example Statement async clocked() {}
+example Statement async clocked(exp) {}
 example Statement clocked async {}
 example Statement finish {}
 example Statement clocked finish {}
@@ -166,8 +200,14 @@ example Statement when(exp) {}
 
 
 /* Expressions */
-Arguments                 = { '()' #Stub }
+Arguments                 = { '(exp)' #Stub }
+ArgumentList              = { 'exp' #Stub }
 Expression                = { 'exp' #Stub }
+
+PrimaryExpression         = { 'exp' #Stub }
+
+StatementExpressionList   = { 'exp++' #Stub }
+StatementExpression       = { 'exp++' #Stub }
 
 example Expression ID
 example Expression 1
@@ -207,11 +247,13 @@ example Expression [1, 1, 1]
 example Expression (ID : Int) => @A {}
 example Expression at(this) ID
 
+
 /* Identifiers */
-Identifier                = {  '`' AnyString '`' / !KEYWORD FullyQualifiedName  #Identifier }
+Identifier                = {  '`' $(AnyString) '`' / !$(KEYWORD) $(FullyQualifiedName)  #Identifier }
 AnyString                 = { ( '\\' ( '\\' / '`' ) / !'`' . )* #AnyString }
 
 FullyQualifiedName        = { [a-zA-Z_][a-zA-Z_0-9]* #FullyQualifiedName }
+
 
 example Identifier Hoge_piyo
 example Identifier Fuga1
@@ -281,7 +323,7 @@ KEYWORD                   = "abstract" / "as" / "assert" / "async" / "at"
                           / "self" / "static" / "struct" / "super" / "switch"
                           / "this" / "throw" / "transient" / "true" / "try"
                           / "type" / "val" / "var" / "void" / "when"
-                          / "while"
+                          / "while" / "throws"
 "abstract"                = 'abstract' !W
 "as"                      = 'as' !W
 "assert"                  = 'assert' !W
@@ -343,6 +385,7 @@ KEYWORD                   = "abstract" / "as" / "assert" / "async" / "at"
 "void"                    = 'void' !W
 "when"                    = 'when' !W
 "while"                   = 'while' !W
+"throws"                  = 'throws' !W
 "("                       = '('
 ")"                       = ')'
 "{"                       = '{'
@@ -354,7 +397,7 @@ KEYWORD                   = "abstract" / "as" / "assert" / "async" / "at"
 "."                       = '.' ![.]
 "=="                      = '=='
 "!="                      = '!='
-"<"                       = '<' ![:<=]
+"<"                       = '<' !( '-' / [:<=] )
 ">"                       = '>' !( '-' / [=>] )
 "<="                      = '<='
 ">="                      = '>='
@@ -399,6 +442,6 @@ KEYWORD                   = "abstract" / "as" / "assert" / "async" / "at"
 "!~"                      = '!~'
 "-<"                      = '-<'
 ">-"                      = '>-'
-
+"<-"                      = '<-'
 
 
