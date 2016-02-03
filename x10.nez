@@ -14,6 +14,9 @@ W                         = [a-zA-Z_0-9]
 PackageDeclaration        = { 'package P;' #Stub }
 ImportDeclarations        = { 'import I;' #Stub }
 
+PackageName               = { 'P' #Stub }
+PackageOrTypeName         = { 'P' #Stub }
+
 TypeDeclarations          = { 'class X{}' #Stub }
 ClassDeclaration          = { 'class X{}' #Stub }
 ClassBody                 = { '{}' #Stub }
@@ -31,7 +34,7 @@ Formals                   = { '(ID : Int)' #Stub }
 Formal                    = { 'ID : Int' #Stub }
 LoopIndex                 = { 'li' #Stub }
 
-Guard                     = { '{}' #Stub }
+Guard                     = { '{exp}' #Stub }
 HasResultType             = { '<: Int' #Stub }
 
 example PackageDeclaration '''
@@ -42,16 +45,16 @@ import ID.ID;
 import ID.ID.*;
 '''
 example TypeDeclaration '''
-class ID implements ID {}
+class ID extends Int implements Int, Int {}
 '''
 example TypeDeclaration '''
 struct ID {}
 '''
 example TypeDeclaration '''
-interface ID extends ID, ID {}
+interface ID extends Int, Int {}
 '''
 example MethodDeclaration '''
-public def ID(ID : Int) : int {}
+public def ID(ID : Int) : Int {}
 '''
 example MethodDeclaration '''
 public operator !(ID : Int) {}
@@ -59,24 +62,35 @@ public operator !(ID : Int) {}
 example PropertyMethodDeclaration '''
 property ID(ID : Int) = exp;
 '''
+example ConstructorDeclaration '''
+def this(ID : Int) {}
+'''
+example ConstructorDeclaration '''
+def this(ID : Int) = this();
+'''
+example ConstructorDeclaration '''
+def this(ID : Int) = exp.super();
+'''
 example FieldDeclaration '''
-private var ID : Int = 1;
+private var ID : Int = exp;
 '''
 example LocalVariableDeclaration '''
-var ID : Int = 1;
+var ID : Int = exp
 '''
 example LocalVariableDeclaration '''
-val ID = 1;
+val ID = exp
 '''
 example LocalVariableDeclaration '''
-var ID : Int;
+var ID : Int
 '''
 
-//example Type (ID : Int) => Int
+
 /* Types */
 Type                      = { $(FunctionType) / $(ConstrainedType) / $(Void) #Type }
 
-FunctionType              = { $(TypeParameters)? _* '(' _* $(FormalList)? _* ')' _* $(Guard)? _* '=>' _* $(Type) #FunctionType }
+FunctionType              = { $(TypeParameters)? _ '(' _ $(FormalList)? _ ')' _ $(Guard)? _ '=>' _ $(Type) _ #FunctionType }
+
+FormalList                = { (!')'.)* #FormalList }
 
 Guard                     = $(DepParams)
 
@@ -84,55 +98,41 @@ ConstrainedType           = NamedType / AnnotatedType
 
 Void                      = { 'void' #Void }
 
-Annotations               = { '@A' #Annotations }
+Annotations               = { '@' NamedTypeNoConstraints #Annotations }
 
 AnnotatedType             = { $(Type) $(Annotations) #AnnotatedType }
 
 TypeArguments             = { '[' $(TypeArgumentList) ' ]' #TypeArguments }
 
-TypeArgumentList          = $(Type) ( ',' $(Type) )*
+TypeArgumentList          = { $(Type) ( ',' $(Type) )* }
 
 TypeParameters            = { '[' $(TypeParamList) ']' #TypeParameters }
 TypeParametersI           = { '[' $(TypeParamIList) ']' #TypeParametersI }
 
-TypeParamIList            =　$(TypeParam) ( ',' $(TypeParam) )* ','?
+TypeParamIList            =　{ $(TypeParam) _ ( ',' _ $(TypeParam) )* _ ','? }
 
-TypeParamList             = $(TypeParam) _* ( ',' _* $(TypeParam) )*
+TypeParamList             = { $(TypeParam) _ ( ',' _ $(TypeParam) )* }
 
 TypeParam                 = { $(Id) #TypeParam }
-Id                        = $(Identifier)
-
-TypeImportOnDemandDecln   = 'import' _* $(PackageOrTypeName) _* '.' _* '*'
+Id                        = { $(Identifier) }
 
 TypeName                  = { $(Id) ( '.' $(Id) )* #TypeName }
 
-NamedType                 = NamedTypeNoConstraints 
+NamedType                 = { $(NamedTypeNoConstraints ) }
 			  / DepNamedType
 
-NamedTypeNoConstraints    = SimpleNamedType
-			  / ParamizedNamedType
+NamedTypeNoConstraints    = { $(ParamizedNamedType) }
+			  / { $(SimpleNamedType) }
 
-SimpleNamedType           = TypeName
-			  / Primary '.' Id
+SimpleNamedType           = { $(TypeName) }
+			  / PrimaryExpression '.' Id
 			  / ParamizedNamedType '.' Id
 			  / DepNamedType '.' Id
 
-ParamizedNamedType        = ''
+ParamizedNamedType        = { $(TypeName) $(TypeParameters) }
+
 			  
 DepNamedType              = ''
-
-Primary                   = 'here'
-			  / '[' ArgumentList? ']'
-			  / Literal
-			  / 'self'
-			  / 'this'
-			  / ClassName '.' 'this'
-			  / '(' Exp ')'
-			  / ObCreationExp
-			  / FieldAccess
-			  / MethodInvo
-
-
 
 
 example Type Int
@@ -144,7 +144,9 @@ example Type (ID : Int) => Int
 
 /* Statements */
 Block                     = { '{}' #Stub }
-// _BlockStatements       = #Stub
+_BlockStatements          = #Stub
+LocalVariableDeclarationStatement = { 'var x = 1;' #Stub }
+
 Statement                 = { 'stmt' #Stub }
 
 example Block {}
@@ -204,7 +206,9 @@ Arguments                 = { '(exp)' #Stub }
 ArgumentList              = { 'exp' #Stub }
 Expression                = { 'exp' #Stub }
 
+//ClosureExpression
 PrimaryExpression         = { 'exp' #Stub }
+//array constructor is here
 
 StatementExpressionList   = { 'exp++' #Stub }
 StatementExpression       = { 'exp++' #Stub }
@@ -240,9 +244,9 @@ example Expression ID == 1
 example Expression Int == Int
 example Expression ID instanceof Int
 example Expression (ID != 1) ? ID : ID
-example Expression new ID()
+example Expression new Int()
 example Expression ID.new ID()
-example Expression new ID() {}
+example Expression new Int() {}
 example Expression [1, 1, 1]
 example Expression (ID : Int) => @A {}
 example Expression at(this) ID
@@ -253,7 +257,6 @@ Identifier                = {  '`' $(AnyString) '`' / !$(KEYWORD) $(FullyQualifi
 AnyString                 = { ( '\\' ( '\\' / '`' ) / !'`' . )* #AnyString }
 
 FullyQualifiedName        = { [a-zA-Z_][a-zA-Z_0-9]* #FullyQualifiedName }
-
 
 example Identifier Hoge_piyo
 example Identifier Fuga1
@@ -443,5 +446,3 @@ KEYWORD                   = "abstract" / "as" / "assert" / "async" / "at"
 "-<"                      = '-<'
 ">-"                      = '>-'
 "<-"                      = '<-'
-
-
