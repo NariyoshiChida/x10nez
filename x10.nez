@@ -86,21 +86,21 @@ var ID : Int
 
 
 /* Types */
-Type                      = { $(FunctionType) / $(ConstrainedType) / $(Void) #Type }
+Type                      = { ( $(FunctionType) / $(NamedType) / $(Void) ) $(Annotations)* #Type }
 
-FunctionType              = { $(TypeParameters)? _ '(' _ $(FormalList)? _ ')' _ $(Guard)? _ '=>' _ $(Type) _ #FunctionType }
+FunctionType              = { $(TypeParameters)? _ $(Formals) _ $(Guard)? _ '=>' _ $(Type) _ #FunctionType }
 
 FormalList                = { (!')'.)* #FormalList }
 
-Guard                     = $(DepParams)
+DepParams                 = '{' _ Expression _ '}'
 
-ConstrainedType           = NamedType / AnnotatedType
+//ConstrainedType           = NamedType / AnnotatedType
 
 Void                      = { 'void' #Void }
 
-Annotations               = { '@' NamedTypeNoConstraints #Annotations }
+Annotations               = { '@' $(NamedTypeNoConstraints) #Annotations }
 
-AnnotatedType             = { $(Type) $(Annotations) #AnnotatedType }
+//AnnotatedType             = { $(Type) $(Annotations) #AnnotatedType }
 
 TypeArguments             = { '[' $(TypeArgumentList) ' ]' #TypeArguments }
 
@@ -125,14 +125,14 @@ NamedTypeNoConstraints    = { $(ParamizedNamedType) }
 			  / { $(SimpleNamedType) }
 
 SimpleNamedType           = { $(TypeName) }
-			  / PrimaryExpression '.' Id
-			  / ParamizedNamedType '.' Id
-			  / DepNamedType '.' Id
+			  / { $(PrimaryExpression) '.' $(Id) }
+			  / { $(ParamizedNamedType) '.' $(Id) }
+			  / { $(DepNamedType) '.' $(Id) }
 
 ParamizedNamedType        = { $(TypeName) $(TypeParameters) }
 
 			  
-DepNamedType              = ''
+DepNamedType              = { $(Expression) }
 
 
 example Type Int
