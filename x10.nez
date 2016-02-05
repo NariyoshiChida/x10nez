@@ -94,11 +94,20 @@ FormalList                = { (!')'.)* #FormalList }
 
 DepParams                 = '{' _ Expression _ '}'
 
+Annotation                = { '@' $(NamedTypeNoConstraints) #Annotation }
+
 //ConstrainedType           = NamedType / AnnotatedType
 
 Void                      = { 'void' #Void }
 
-Annotations               = { '@' $(NamedTypeNoConstraints) #Annotations }
+Annotations               = { $(Annotation)+ }
+
+ClassType                 = NamedType
+
+ThrowsList                = { Type _ ( ',' _ Type )* #ThrowsList }
+
+InterfaceTypeList         = { Type _ ( ',' _ Type )* #InterfaceTypeList }
+
 
 //AnnotatedType             = { $(Type) $(Annotations) #AnnotatedType }
 
@@ -132,7 +141,9 @@ SimpleNamedType           = { $(TypeName) }
 ParamizedNamedType        = { $(TypeName) $(TypeParameters) }
 
 			  
-DepNamedType              = { $(Expression) }
+DepNamedType              = { ( $(TypeName) / $(PrimaryExpression) '.' $(Id) / $(ParamizedNamedType) '.' $(Id) ) ( '.' $(Id) $(DepParams) )* }
+			  / { $(ParamizedNamedType) $(DepParams) }
+
 
 
 example Type Int
